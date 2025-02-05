@@ -51,7 +51,6 @@ class FlappyBirdEnv(gym.Env):
         return np.array([
             h_dist,
             v_dist,
-            vel_y
         ])
 
 
@@ -67,12 +66,12 @@ class FlappyBirdEnv(gym.Env):
         alive = self._game.update_state(action)
         obs = self._get_observation()
         done = not alive
-        h_dist, v_dist, _ = obs
+        h_dist, v_dist = obs
         reward = 0
         if done:
             reward = -100
         else:
-            reward = 0.1
+            reward = 0
         # if v_dist < 0.03 and v_dist > -0.03 and h_dist < 0.3 and h_dist >= 0:
             # reward = 
         # elif v_dist > 0.4 or v_dist < -0.4:

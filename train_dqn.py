@@ -17,13 +17,13 @@ def preprocess_state(state):
 
 if __name__ == "__main__":
     env = FlappyBirdEnv()
-    state_size = 3  # Dimensione dello stato continuo
+    state_size = 2  # Dimensione dello stato continuo
     action_size = 2
     epsilon_decay = 0.995
     agent = DQNAgent(state_size, action_size)
 
-    episodes = 1000
-    batch_size = 16
+    episodes = 5000
+    batch_size = 32
     rewards = []
     max_reward = float("-inf")
     max_score = max_reward = float("-inf")
