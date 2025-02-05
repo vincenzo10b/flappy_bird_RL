@@ -14,9 +14,9 @@ class PlayerMode(Enum):
     NORMAL = "NORMAL"
     CRASH = "CRASH"
     
-class Actions(IntEnum):
-        """ Possible actions for the player to take. """
-        IDLE, FLAP = 0, 1
+class PlayerActions(IntEnum):
+    """ Possible actions for the player to take. """
+    IDLE, FLAP = 0, 1
 
 
 class Player(Entity):

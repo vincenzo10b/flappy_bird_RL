@@ -14,13 +14,13 @@ from .entities import (
     WelcomeMessage,
 )
 from .utils import GameConfig, Images, Sounds, Window
-
+from pygame.locals import K_ESCAPE, K_SPACE, K_UP, KEYDOWN, QUIT
 
 class Flappy:
-    def __init__(self):
+    def __init__(self, screen_width, screen_height):
         pygame.init()
         pygame.display.set_caption("Flappy Bird")
-        window = Window(288, 512)
+        window = Window(screen_width, screen_height)
         screen = pygame.display.set_mode((window.width, window.height))
         images = Images()
 
@@ -66,7 +66,7 @@ class Flappy:
         self.player.tick()
 
         pygame.display.update()
-        await asyncio.sleep(0)
+        #await asyncio.sleep(0)
         self.config.tick()
         return True
 

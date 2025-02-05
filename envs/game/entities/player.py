@@ -1,4 +1,5 @@
 from enum import Enum
+from enum import IntEnum
 from itertools import cycle
 
 import pygame
@@ -15,7 +16,7 @@ class PlayerMode(Enum):
     CRASH = "CRASH"
     
 class PlayerActions(IntEnum):
-        """ Possible actions for the player to take. """
+    """ Possible actions for the player to take. """
     IDLE, FLAP = 0, 1
 
 

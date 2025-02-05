@@ -1,67 +1,77 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
 import random
 import numpy as np
 from collections import deque
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.optimizers import Adam
 
 class DQNAgent:
-    def __init__(self, state_size, action_size, gamma=0.99, alpha=0.001, epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.01):
-        self.state_size = state_size
-        self.action_size = action_size
-        self.gamma = gamma  # Fattore di sconto
-        self.alpha = alpha  # Tasso di apprendimento
-        self.epsilon = epsilon  # Esplorazione iniziale
-        self.epsilon_decay = epsilon_decay
-        self.epsilon_min = epsilon_min
+    def __init__(self, state_size, action_size, gamma=0.99, alpha=1e-6, epsilon=1, epsilon_decay=0.9975, epsilon_min=0.01):
+        self.state_size = state_size  # Size of the state space
+        self.action_size = action_size  # Size of the action space
+        self.gamma = gamma  # Discount factor
+        self.alpha = alpha  # Learning rate
+        self.epsilon = epsilon  # Exploration rate
+        self.epsilon_decay = epsilon_decay  # Decay rate for exploration
+        self.epsilon_min = epsilon_min  # Minimum exploration rate
         self.memory = deque(maxlen=2000)  # Replay memory
-        self.model = self._build_model()
+        self.model = self._build_model()  # Neural network model
 
     def _build_model(self):
-        """Costruisce la rete neurale"""
-        model = nn.Sequential(
-            nn.Linear(self.state_size, 24),
-            nn.ReLU(),
-            nn.Linear(24, 24),
-            nn.ReLU(),
-            nn.Linear(24, self.action_size)
-        )
+        """Build the neural network model"""
+        model = Sequential([
+            Dense(24, input_dim=self.state_size, activation='relu'),  # Input layer
+            Dense(24, activation='relu'),  # Hidden layer
+            Dense(self.action_size, activation='linear')  # Output layer
+        ])
+        model.compile(optimizer=Adam(learning_rate=self.alpha), loss='mse')  # Compile the model
         return model
 
     def remember(self, state, action, reward, next_state, done):
-        """Salva l'esperienza nella memoria"""
+        """Store an experience in replay memory"""
         self.memory.append((state, action, reward, next_state, done))
 
     def act(self, state):
-        """Sceglie un'azione usando epsilon-greedy"""
+        """Choose an action using epsilon-greedy strategy"""
         if np.random.rand() < self.epsilon:
-            return random.randrange(self.action_size)
-        state = torch.FloatTensor(state).unsqueeze(0)
-        with torch.no_grad():
-            q_values = self.model(state)
-        return np.argmax(q_values.numpy())
+            return random.randrange(self.action_size)  # Random action (exploration)
+        else:
+            state = np.reshape(state, [1, self.state_size])  # Reshape state for the model
+            q_values = self.model.predict(state, verbose=0)  # Predict Q-values
+            return np.argmax(q_values[0])  # Choose the action with the highest Q-value
 
     def replay(self, batch_size):
-        """Addestra il modello usando esperienze casuali dalla memoria"""
+        """Train the model using a batch of experiences from replay memory"""
         if len(self.memory) < batch_size:
-            return
+            return  # Not enough experiences to sample a batch
+
+        # Sample a batch of experiences from replay memory
         minibatch = random.sample(self.memory, batch_size)
-        for state, action, reward, next_state, done in minibatch:
-            state = torch.FloatTensor(state)
-            next_state = torch.FloatTensor(next_state)
-            target = reward
-            if not done:
-                target += self.gamma * torch.max(self.model(next_state)).item()
-            target_f = self.model(state).detach().clone()
-            target_f[action] = target
-            criterion = nn.MSELoss()
-            optimizer = optim.Adam(self.model.parameters(), lr=self.alpha)
-            optimizer.zero_grad()
-            loss = criterion(self.model(state), target_f)
-            loss.backward()
-            optimizer.step()
+
+        # Extract states, actions, rewards, next_states, and done flags from the batch
+        states = np.array([experience[0] for experience in minibatch])
+        actions = np.array([experience[1] for experience in minibatch])
+        rewards = np.array([experience[2] for experience in minibatch])
+        next_states = np.array([experience[3] for experience in minibatch])
+        dones = np.array([experience[4] for experience in minibatch])
+
+        # Predict Q-values for the current states and next states
+        current_q_values = self.model.predict(states, verbose=0)
+        next_q_values = self.model.predict(next_states, verbose=0)
+
+        # Update Q-values using the Bellman equation
+        for i in range(batch_size):
+            if dones[i]:
+                # If the episode is done, there is no future reward
+                current_q_values[i][actions[i]] = rewards[i]
+            else:
+                # Use the Bellman equation to update the Q-value
+                current_q_values[i][actions[i]] = rewards[i] + self.gamma * np.max(next_q_values[i])
+
+        # Train the model on the updated Q-values
+        self.model.fit(states, current_q_values, batch_size=batch_size, verbose=0)
 
     def decay_epsilon(self):
-        """Riduce epsilon per diminuire l'esplorazione"""
+        """Decay the exploration rate"""
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
